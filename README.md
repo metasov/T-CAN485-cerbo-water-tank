@@ -1,13 +1,23 @@
 # T-CAN485 Tank Bridge
 
+<p align="center">
+  <img src="docs/cerbo_dashboard.png" alt="Cerbo GX dashboard showing the bridged water tank reading at 93%" width="400">
+</p>
+
 ESP32 firmware that reads a water-level sensor over RS485 (Modbus RTU) and
 republishes the value to a Victron Cerbo GX two ways:
 
 - **NMEA 2000** — PGN 127505 (Fluid Level, type Water) over VE.Can.
-- **BLE** — spoofed Mopeka Pro Check H2O advertisement, so the Cerbo GX
+- **BLE** — Mopeka Pro Check H2O–compatible advertisement, so the Cerbo GX
   discovers it as a Bluetooth tank sensor.
 
 Either path can be enabled independently from the web UI.
+
+> **Disclaimer.** This project is not affiliated with, endorsed by, or
+> sponsored by Mopeka Products LLC. "Mopeka" and "Pro Check" are trademarks of
+> their respective owners. The BLE advertisement format used by this firmware
+> was learned from publicly documented community reverse-engineering work
+> (see [Acknowledgements](#acknowledgements)).
 
 ## Hardware
 
@@ -105,6 +115,31 @@ update.
 - `docs/sensor.pdf` — water-level sensor datasheet.
 - `docs/140558-Ekrano_GX__Venus_GX__Cerbo_GX__Cerbo-S_GX_Manual-pdf-en.pdf` —
   Cerbo GX manual (NMEA 2000 + Bluetooth tank-sensor sections).
+
+## Acknowledgements
+
+The Mopeka BLE advertisement format consumed by Victron's Cerbo GX is not
+officially published; the byte layout used by this firmware was derived from
+publicly available community reverse-engineering work and from the open-source
+consumer side. Credit and thanks to:
+
+- [`victronenergy/dbus-ble-sensors`](https://github.com/victronenergy/dbus-ble-sensors) —
+  the Cerbo GX daemon that ingests these advertisements; the definitive source
+  of truth for what the GX accepts.
+- [`spbrogan/mopeka_pro_check`](https://github.com/spbrogan/mopeka_pro_check) —
+  early Python implementation; one of the first public decoders.
+- [ESPHome `mopeka_pro_check` component](https://esphome.io/components/sensor/mopeka_pro_check/) —
+  byte-level parser and reference implementation.
+- [Theengs Decoder — Mopeka entry](https://decoder.theengs.io/devices/Mopeka.html) —
+  community decoder catalogue.
+- [`Bluetooth-Devices/mopeka-iot-ble`](https://github.com/Bluetooth-Devices/mopeka-iot-ble) —
+  Home Assistant integration path; service-UUID validation reference.
+- [LilyGo T-CAN485 reference repo](https://github.com/Xinyuan-LilyGO/T-CAN485) —
+  pin map and FastLED bundle (vendored as a submodule under `T-CAN485/`).
+
+The Mopeka protocol notes in `docs/docs/mopeka_ble_protocol.md` distil what
+those projects collectively document; cross-reference there for the byte-level
+detail and the rationale behind every field.
 
 ## License
 

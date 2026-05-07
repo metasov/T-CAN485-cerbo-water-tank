@@ -2,6 +2,8 @@
 
 Reference for emulating a Mopeka Pro sensor on ESP32 so Victron Venus OS recognizes it as a tank level source.
 
+> **Provenance.** Mopeka Products LLC has not published this protocol officially. The byte layout below was derived from the open-source consumer side ([`victronenergy/dbus-ble-sensors`](https://github.com/victronenergy/dbus-ble-sensors)) and from prior community reverse-engineering — see [References](#references) for the chain of work this document distils. This document and the firmware that uses it are not affiliated with or endorsed by Mopeka.
+
 ---
 
 ## Overview
@@ -255,7 +257,25 @@ If the MAC appears in `hcitool lescan` but not in the Bluetooth Sensors tab, the
 
 ## References
 
-- `victronenergy/dbus-ble-sensors` — `ble-scan.c` (definitive source for Cerbo GX detection logic)
-- ESPHome `mopeka_pro_check` component (byte-level parser)
-- `Bluetooth-Devices/mopeka-iot-ble` Python library (HA integration path, checks service UUID)
-- Victron Venus OS v2.90 release notes (Mopeka Pro support announcement)
+The byte layout above was assembled by cross-referencing the following projects. Each is a primary source for one or more of the fields documented here.
+
+- [`victronenergy/dbus-ble-sensors`](https://github.com/victronenergy/dbus-ble-sensors) —
+  the Cerbo GX C daemon that consumes these advertisements. `ble-scan.c` is
+  the **definitive** source for what the GX accepts: model byte allowlist,
+  the UID self-authentication check, and the company-ID filter.
+- [`spbrogan/mopeka_pro_check`](https://github.com/spbrogan/mopeka_pro_check) —
+  one of the earliest public Python decoders; primary source for the
+  battery-voltage and temperature encodings.
+- [ESPHome `mopeka_pro_check` component](https://esphome.io/components/sensor/mopeka_pro_check/) —
+  C++ parser; cross-checked against the level/quality bit packing.
+- [`Bluetooth-Devices/mopeka-iot-ble`](https://github.com/Bluetooth-Devices/mopeka-iot-ble) —
+  Home Assistant integration path; validates the `0xADA0` service UUID record
+  (which `dbus-ble-sensors` ignores but HA requires).
+- [Theengs Decoder — Mopeka entry](https://decoder.theengs.io/devices/Mopeka.html) —
+  community decoder catalogue; convenient cross-reference for variant model bytes.
+- [Victron Community: Mopeka BLE tank sensors thread](https://community.victronenergy.com/questions/52274/venus-raspberry-pi-read-other-ble-device.html) —
+  field reports on Venus OS support across versions.
+- Victron Venus OS [v2.90 release notes](https://www.victronenergy.com/live/venus-os:start) —
+  initial Mopeka Pro support announcement.
+
+> The author is not affiliated with Mopeka Products LLC. "Mopeka" and "Pro Check" are trademarks of their respective owners.
