@@ -1,0 +1,4 @@
+[submodule "T-CAN485"]
+	path = T-CAN485
+	url = https://github.com/Xinyuan-LilyGO/T-CAN485.git
+	branch = arduino-esp32-libs_v3.0.1

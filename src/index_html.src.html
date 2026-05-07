@@ -1,0 +1,1607 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tank Bridge — T-CAN485</title>
+<style>
+:root {
+  --paper:        #f1ead7;
+  --paper-deep:   #e9dfc4;
+  --panel:        #fbf6e8;
+  --ink:          #0f2031;
+  --ink-2:        #4b5b6c;
+  --ink-3:        #8a8a82;
+  --rule:         #c9b78a;
+  --rule-soft:    #e3d5a8;
+  --brass:        #a87216;
+  --brass-glow:   #d49a2b;
+  --brass-soft:   #ecd9a6;
+  --copper:       #7a3d1c;
+  --ok:           #2f6b4a;
+  --err:          #a83218;
+  --warn:         #b87410;
+  --shadow:       0 1px 0 rgba(34,22,4,.04), 0 14px 30px -18px rgba(34,22,4,.18);
+  --grain:
+    radial-gradient(ellipse at 18% 24%, rgba(168,114,22,.05), transparent 55%),
+    radial-gradient(ellipse at 82% 76%, rgba(15,32,49,.04), transparent 55%);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper:      #0c1417;
+    --paper-deep: #060c0e;
+    --panel:      #121d21;
+    --ink:        #ede2c9;
+    --ink-2:      #97a4b0;
+    --ink-3:      #5c6873;
+    --rule:       #2d3a3e;
+    --rule-soft:  #1c272b;
+    --brass:      #d49a2b;
+    --brass-glow: #f3c45a;
+    --brass-soft: #3a2f15;
+    --copper:     #d99459;
+    --ok:         #6cc18b;
+    --err:        #e87a5f;
+    --warn:       #e3a851;
+    --shadow:     0 1px 0 rgba(0,0,0,.5), 0 16px 36px -18px rgba(0,0,0,.65);
+    --grain:
+      radial-gradient(ellipse at 18% 24%, rgba(212,154,43,.06), transparent 55%),
+      radial-gradient(ellipse at 82% 76%, rgba(108,193,139,.04), transparent 55%);
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  background-image: var(--grain);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum", "ss01";
+}
+
+/* ──────────── HEADER / BRAND ──────────── */
+.brand {
+  position: sticky; top: 0; z-index: 5;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 22px;
+  background: linear-gradient(180deg, var(--panel), color-mix(in srgb, var(--panel), var(--paper) 30%));
+  border-bottom: 1px solid var(--rule);
+  box-shadow: 0 1px 0 var(--rule-soft), 0 8px 18px -16px rgba(0,0,0,.18);
+}
+.brand .mark {
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  color: var(--brass);
+}
+.brand .mark svg { width: 100%; height: 100%; }
+.brand .name { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.brand .name h1 {
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.32rem;
+  margin: 0;
+  letter-spacing: 0.005em;
+  color: var(--ink);
+}
+.brand .name .sku {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  padding: 3px 9px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--paper), transparent 50%);
+}
+
+.annunciator {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 6px 13px 6px 11px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--paper), transparent 20%), color-mix(in srgb, var(--paper-deep), transparent 30%));
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15);
+}
+.dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.15) inset;
+  transition: background .25s, box-shadow .25s;
+}
+.dot.ok    { background: var(--ok);    box-shadow: 0 0 9px var(--ok),    0 0 0 1px rgba(0,0,0,.18) inset; }
+.dot.err   { background: var(--err);   box-shadow: 0 0 10px var(--err),  0 0 0 1px rgba(0,0,0,.18) inset; animation: pulse 1.6s ease-in-out infinite; }
+.dot.warn  { background: var(--warn);  box-shadow: 0 0 9px var(--warn),  0 0 0 1px rgba(0,0,0,.18) inset; }
+@keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: .55 } }
+
+/* ──────────── LAYOUT ──────────── */
+main { max-width: 1120px; margin: 0 auto; }
+main[hidden] { display: none; }
+
+/* Setup view keeps the old panel grid */
+#setupView {
+  padding: 30px 22px 72px;
+  display: grid;
+  gap: 22px;
+  grid-template-columns: 1fr;
+}
+#setupView[hidden] { display: none; }
+@media (min-width: 880px) {
+  #setupView { grid-template-columns: 1fr 1fr; gap: 24px; }
+  #setupView .span-2 { grid-column: 1 / -1; }
+}
+
+/* Tab panes are the new grid containers */
+.tab-pane {
+  padding: 30px 22px 72px;
+  display: grid;
+  gap: 22px;
+  grid-template-columns: 1fr;
+}
+.tab-pane[hidden] { display: none; }
+@media (min-width: 880px) {
+  .tab-pane { grid-template-columns: 1fr 1fr; gap: 24px; }
+  .tab-pane .span-2 { grid-column: 1 / -1; }
+}
+
+/* display:contents makes guarded children participate in the parent grid */
+.guarded { display: contents; }
+.guarded[hidden] { display: none; }
+
+/* ──────────── PANELS ──────────── */
+section.panel {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  padding: 24px 26px;
+  box-shadow: var(--shadow);
+  animation: rise .5s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { section.panel { animation: none; } }
+
+/* engraved corner ticks — like brass nameplate corners */
+section.panel::before, section.panel::after {
+  content: "";
+  position: absolute;
+  width: 14px; height: 14px;
+  border: 1px solid var(--brass);
+  opacity: .4;
+}
+section.panel::before { top: 8px;    left: 8px;  border-right: none; border-bottom: none; }
+section.panel::after  { bottom: 8px; right: 8px; border-left:  none; border-top:    none; }
+
+.panel-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
+  position: relative;
+}
+.panel-head::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -3px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--rule-soft) 0%, var(--brass-soft) 30%, var(--rule-soft) 70%, transparent 100%);
+}
+.panel-head h2 {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 0;
+}
+.panel-head .meta {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+/* ──────────── HERO LEVEL PANEL ──────────── */
+.level {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 720px) {
+  .level { grid-template-columns: 1.45fr 1fr; align-items: stretch; }
+}
+
+.gauge {
+  position: relative;
+  display: flex; flex-direction: column; gap: 18px;
+  min-width: 0;
+}
+.readout {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-feature-settings: "tnum", "ss01";
+  font-size: clamp(3rem, 10.5vw, 5.6rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  color: var(--ink);
+  display: block;
+}
+.readout small {
+  display: block;
+  margin-top: 12px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* ── sight glass ── horizontal tank cutaway with brass casing ── */
+.sight { position: relative; margin-top: 4px; }
+.sight .ticks {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  height: 8px;
+  margin-bottom: 4px;
+}
+.sight .ticks span {
+  border-left: 1px solid var(--rule);
+}
+.sight .ticks span:nth-child(1),
+.sight .ticks span:nth-child(6),
+.sight .ticks span:nth-child(11) {
+  border-left-color: var(--brass);
+}
+.sight .glass {
+  position: relative;
+  height: 26px;
+  background:
+    repeating-linear-gradient(90deg,
+      transparent 0 calc(10% - 1px),
+      var(--rule-soft) calc(10% - 1px) 10%);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 2px 5px rgba(0,0,0,.18),
+    inset 0 -1px 0 rgba(255,255,255,.18);
+}
+.sight .glass .fill {
+  height: 100%;
+  width: 0%;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--brass-glow), white 20%) 0%,
+      var(--brass-glow) 35%,
+      var(--brass) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.4),
+    inset 0 -3px 5px rgba(0,0,0,.16),
+    2px 0 0 color-mix(in srgb, var(--brass), black 30%);
+  transition: width 0.85s cubic-bezier(.2,.85,.2,1);
+  position: relative;
+}
+.sight .glass .fill::after {
+  content: "";
+  position: absolute;
+  top: 0; right: 0;
+  width: 6px; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.4));
+}
+.sight .scale {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin-top: 6px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-2);
+}
+.sight .scale span:nth-child(1) { text-align: left; }
+.sight .scale span:nth-child(5) { text-align: right; }
+.sight .scale span:nth-child(2),
+.sight .scale span:nth-child(3),
+.sight .scale span:nth-child(4) { text-align: center; }
+
+/* ── metric stack (right of hero) ── */
+.metrics {
+  display: grid;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--paper), transparent 40%);
+}
+.metric {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--rule-soft);
+  gap: 14px;
+}
+.metric:last-child { border-bottom: 0; }
+.metric .key {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.metric .val {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-feature-settings: "tnum";
+  font-size: 0.92rem;
+  color: var(--ink);
+  text-align: right;
+}
+
+/* ──────────── KEY/VALUE TABLES ──────────── */
+table.kv { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+table.kv th, table.kv td {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: baseline;
+}
+table.kv tr:last-child th, table.kv tr:last-child td { border-bottom: 0; }
+table.kv th {
+  text-align: left;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  width: 50%;
+}
+table.kv td {
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-feature-settings: "tnum";
+  color: var(--ink);
+}
+
+/* ──────────── FORMS ──────────── */
+form .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+form .field:last-child { margin-bottom: 0; }
+form label {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+form .hint {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+form input, form select {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-feature-settings: "tnum";
+  font-size: 0.92rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+form input::placeholder { color: var(--ink-3); }
+form input:focus, form select:focus {
+  outline: none;
+  border-color: var(--brass);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brass), transparent 80%);
+  background: color-mix(in srgb, var(--paper), white 4%);
+}
+form .row {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 540px) { form .row { grid-template-columns: 1fr; } }
+
+/* ── buttons — brass instrument keys ── */
+button {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 11px 20px;
+  border: 1px solid var(--brass);
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--brass-glow), var(--brass));
+  color: #fbf6e8;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.32), 0 1px 0 rgba(0,0,0,.08);
+  transition: transform .08s, box-shadow .15s, background .15s, opacity .15s;
+}
+button:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 3px 8px -2px rgba(0,0,0,.18); }
+button:active { transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(0,0,0,.18); }
+button:focus-visible { outline: 2px solid var(--brass-glow); outline-offset: 2px; }
+button.sec {
+  background: transparent;
+  color: var(--brass);
+  box-shadow: none;
+}
+button.sec:hover { background: color-mix(in srgb, var(--brass), transparent 92%); box-shadow: none; }
+button[disabled] { opacity: .42; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+.actions .note {
+  color: var(--ink-2);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+.note { color: var(--ink-2); font-size: 0.82rem; }
+code, .note code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  padding: 1px 5px;
+  background: color-mix(in srgb, var(--paper), black 4%);
+  border: 1px solid var(--rule-soft);
+  border-radius: 2px;
+  color: var(--copper);
+}
+@media (prefers-color-scheme: dark) {
+  code, .note code { background: color-mix(in srgb, var(--paper), white 4%); }
+}
+
+/* ──────────── TOAST ──────────── */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translate(-50%, 8px);
+  padding: 12px 22px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--brass);
+  border-radius: 3px;
+  box-shadow: 0 18px 40px -12px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
+  opacity: 0;
+  transition: opacity .25s, transform .25s;
+  pointer-events: none;
+  z-index: 100;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ──────────── HELP / DETAILS ──────────── */
+.help { font-size: 0.94rem; line-height: 1.65; }
+.help details {
+  border-top: 1px solid var(--rule-soft);
+  padding: 4px 0;
+}
+.help details:first-of-type { border-top: 0; padding-top: 0; }
+.help details > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 12px 0;
+  display: flex; align-items: center; gap: 12px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink);
+  transition: color .15s;
+}
+.help details > summary::-webkit-details-marker { display: none; }
+.help details > summary::before {
+  content: "+";
+  font-family: ui-monospace, monospace;
+  color: var(--brass);
+  font-size: 1.1rem;
+  width: 16px;
+  text-align: center;
+  line-height: 1;
+  transition: transform .2s;
+}
+.help details[open] > summary::before { content: "−"; }
+.help details[open] > summary { color: var(--brass); }
+.help details > summary b { font-weight: 700; letter-spacing: inherit; }
+.help details > :not(summary) { padding-left: 28px; }
+.help h3 {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin: 16px 0 4px;
+  color: var(--ink-2);
+}
+.help p { margin: 6px 0 10px; }
+.help ul, .help ol { margin: 6px 0 12px; padding-left: 50px; }
+.help li { margin: 4px 0; }
+.help pre {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  background: color-mix(in srgb, var(--paper), black 5%);
+  border: 1px solid var(--rule-soft);
+  border-left: 3px solid var(--brass);
+  border-radius: 2px;
+  padding: 14px 16px;
+  margin: 6px 28px 12px 28px;
+  overflow-x: auto;
+  color: var(--ink);
+  white-space: pre;
+}
+@media (prefers-color-scheme: dark) {
+  .help pre { background: color-mix(in srgb, var(--paper), white 5%); }
+}
+
+/* ──────────── PROBE HITS ──────────── */
+table.hits {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  margin-top: 14px;
+  border: 1px solid var(--rule-soft);
+  border-radius: 3px;
+  overflow: hidden;
+}
+table.hits th, table.hits td {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-feature-settings: "tnum";
+  text-align: left;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+table.hits th {
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--paper), transparent 50%);
+  border-bottom: 1px solid var(--rule);
+}
+table.hits tbody tr:nth-child(odd) td { background: color-mix(in srgb, var(--paper), transparent 75%); }
+table.hits tbody:empty::after { content: ""; }
+table.hits tbody tr td:last-child { text-align: right; }
+table.hits button {
+  padding: 5px 11px;
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+}
+
+/* ──────────── SETUP VIEW ──────────── */
+.setup-intro {
+  margin: 0 0 14px;
+  font-size: 0.96rem;
+  color: var(--ink);
+  max-width: 60ch;
+}
+#netList { display: grid; gap: 8px; margin-top: 12px; }
+#netList button {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  font-size: 0.94rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  text-align: left;
+  padding: 12px 16px;
+  display: flex; justify-content: space-between; align-items: center; gap: 14px;
+  box-shadow: none;
+}
+#netList button:hover {
+  border-color: var(--brass);
+  background: color-mix(in srgb, var(--brass), var(--paper) 90%);
+  box-shadow: none;
+}
+#netList button .note,
+#netList button code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--ink-2);
+}
+
+/* ──────────── FOOT ──────────── */
+.foot {
+  text-align: center;
+  padding: 30px 0 10px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.foot .sep { color: var(--brass); padding: 0 8px; }
+
+/* ──────────── TAB NAVIGATION ──────────── */
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 2px solid var(--rule);
+  background: var(--paper-deep);
+  padding: 0 22px;
+  gap: 2px;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 14px 16px;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -2px;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  border-radius: 0;
+  box-shadow: none;
+  transition: color .15s, border-color .15s, background .15s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.tab:hover { color: var(--ink); background: color-mix(in srgb, var(--brass-soft), transparent 70%); box-shadow: none; }
+.tab:active { transform: none; box-shadow: none; }
+.tab:focus-visible { outline: 2px solid var(--brass-glow); outline-offset: -2px; }
+.tab.active { color: var(--brass); border-bottom-color: var(--brass); }
+.tab .badge { font-size: 0.8em; opacity: 0.55; transition: opacity .2s; }
+
+/* ──────────── SIGN-IN GATE ──────────── */
+.gate {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  padding-top: 36px;
+}
+.gate[hidden] { display: none; }
+.gate-card {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  padding: 40px 44px;
+  box-shadow: var(--shadow);
+  text-align: center;
+  width: 100%;
+  max-width: 360px;
+  position: relative;
+}
+.gate-card::before, .gate-card::after {
+  content: "";
+  position: absolute;
+  width: 14px; height: 14px;
+  border: 1px solid var(--brass);
+  opacity: .4;
+}
+.gate-card::before { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+.gate-card::after  { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+.gate-card h3 {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  margin: 16px 0 8px;
+  color: var(--ink);
+}
+.gate-card .note { margin-bottom: 20px; }
+.gate-card form { text-align: left; }
+.gate-card form button { width: 100%; margin-top: 12px; }
+.gate-err {
+  color: var(--err);
+  font-size: 0.82rem;
+  margin-top: 10px;
+  min-height: 1.2em;
+  text-align: center;
+}
+
+/* ──────────── SIGN-OUT ──────────── */
+#signOutBtn {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  background: transparent;
+  color: var(--ink-3);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  box-shadow: none;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+#signOutBtn:hover { color: var(--err); border-color: color-mix(in srgb, var(--err), transparent 40%); background: transparent; box-shadow: none; }
+#signOutBtn:active { transform: none; }
+
+/* ──────────── OTA PROGRESS BAR ──────────── */
+.bar {
+  height: 6px;
+  background: var(--rule-soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.bar > div {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brass-glow), var(--brass));
+  border-radius: 999px;
+  transition: width .2s;
+}
+</style>
+</head><body>
+
+<header class="brand">
+  <span class="mark" aria-hidden="true">
+    <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="16" cy="16" r="12.5"/>
+      <path d="M3.8 18.5 Q 8.5 16, 13 18.5 T 22 18.5 T 28.2 18.5"/>
+      <path d="M3.8 21 Q 8.5 18.5, 13 21 T 22 21 T 28.2 21" opacity=".55"/>
+      <line x1="16" y1="2" x2="16" y2="5"/>
+      <line x1="16" y1="27" x2="16" y2="30"/>
+    </svg>
+  </span>
+  <div class="name">
+    <h1>Tank Bridge</h1>
+    <span class="sku">T·CAN485</span>
+  </div>
+  <span class="annunciator">
+    <span class="dot" id="hdrDot"></span>
+    <span id="hdrTxt">standby</span>
+  </span>
+  <button id="signOutBtn" hidden>Sign out</button>
+</header>
+
+<!-- ────────────── SETUP VIEW (first-boot WiFi provisioning) ────────────── -->
+<main id="setupView" hidden>
+  <section class="panel span-2">
+    <div class="panel-head">
+      <h2>Connect to WiFi</h2>
+      <span class="meta">First-time setup</span>
+    </div>
+    <p class="setup-intro">Pick the network this bridge should join. Once it's online, you'll get the full dashboard at <code>watertank.local</code>.</p>
+    <p class="note" id="setupAp"></p>
+    <div class="actions">
+      <button id="rescanBtn" class="sec" type="button">Rescan</button>
+      <span id="scanMsg" class="note"></span>
+    </div>
+    <div id="netList"></div>
+    <form id="connectForm" style="margin-top:18px;display:none">
+      <p style="margin:0 0 10px">Connecting to <b id="pickedSsid"></b></p>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="pickedPass" placeholder="leave blank if open" autocomplete="new-password">
+      </div>
+      <div class="actions">
+        <button type="submit">Connect</button>
+        <button type="button" id="cancelPick" class="sec">Cancel</button>
+      </div>
+    </form>
+    <p id="joinMsg" class="note" style="margin-top:16px"></p>
+  </section>
+</main>
+
+<!-- ────────────── DASHBOARD VIEW ────────────── -->
+<main id="dashboardView" hidden>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" role="tab" data-tab="status">Status</button>
+    <button class="tab" role="tab" data-tab="configure">Configure <span class="badge">🔒</span></button>
+    <button class="tab" role="tab" data-tab="system">System <span class="badge">🔒</span></button>
+    <button class="tab" role="tab" data-tab="help">Help</button>
+  </nav>
+
+  <!-- ── Status tab ── -->
+  <div class="tab-pane" id="pane-status">
+    <section class="panel span-2">
+      <div class="panel-head">
+        <h2>Reservoir</h2>
+        <span class="meta">PGN 127505 · Fluid Level</span>
+      </div>
+      <div class="level">
+        <div class="gauge">
+          <span class="readout" id="pct">--<small id="mm">-- mm</small></span>
+          <div class="sight">
+            <div class="ticks">
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="glass"><div class="fill" id="bar"></div></div>
+            <div class="scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+          </div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><span class="key">Capacity</span><span class="val" id="cap">--</span></div>
+          <div class="metric"><span class="key">Last reading</span><span class="val" id="age">--</span></div>
+          <div class="metric"><span class="key">Modbus OK / Err</span><span class="val" id="mb">--</span></div>
+          <div class="metric" id="n2kRow"><span class="key">N2K Source / Tx</span><span class="val" id="n2k">--</span></div>
+          <div class="metric" id="bleRow"><span class="key">BLE</span><span class="val" id="bleTx">--</span></div>
+          <div class="metric"><span class="key">Uptime</span><span class="val" id="up">--</span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ── Configure tab ── -->
+  <div class="tab-pane" id="pane-configure" hidden>
+
+    <div class="gate" id="cfgGate">
+      <div class="gate-card">
+        <svg width="36" height="36" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-3)" aria-hidden="true">
+          <rect x="6" y="14" width="20" height="14" rx="2.5"/>
+          <path d="M10 14v-4a6 6 0 0 1 12 0v4"/>
+        </svg>
+        <h3>Sign in to configure</h3>
+        <p class="note">Enter the admin password shown in the serial console.</p>
+        <form class="sign-in-form">
+          <div class="field">
+            <label>Admin password</label>
+            <input type="password" class="sign-in-pwd" placeholder="Password" autocomplete="current-password">
+          </div>
+          <button type="submit">Sign in</button>
+          <p class="gate-err"></p>
+        </form>
+      </div>
+    </div>
+
+    <div class="guarded" id="cfgContent" hidden>
+
+      <!-- Sensor & tank configuration -->
+      <section class="panel span-2">
+        <div class="panel-head">
+          <h2>Configure</h2>
+          <span class="meta">Modbus RTU · Tank</span>
+        </div>
+        <form id="cfgForm">
+          <div class="row">
+            <div class="field">
+              <label>Tank capacity (L)</label>
+              <input type="number" name="tank_capacity_l" min="1" max="100000">
+              <span class="hint">Total physical volume of the tank.</span>
+            </div>
+            <div class="field">
+              <label>Sensor range (mm)</label>
+              <input type="number" name="sensor_range_mm" min="1" max="60000">
+              <span class="hint">Full-scale depth — used for percent conversion.</span>
+            </div>
+            <div class="field">
+              <label>Modbus slave address</label>
+              <input type="number" name="modbus_slave" min="1" max="247">
+              <span class="hint">1 – 247. Cheap sensors ship as 1.</span>
+            </div>
+            <div class="field">
+              <label>Baud rate</label>
+              <select name="modbus_baud">
+                <option>1200</option><option>2400</option><option>4800</option>
+                <option>9600</option><option>19200</option><option>38400</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Parity</label>
+              <select name="modbus_parity">
+                <option value="0">8N1 — none</option>
+                <option value="1">8E1 — even</option>
+                <option value="2">8O1 — odd</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Function code</label>
+              <select name="modbus_fn">
+                <option value="3">0x03 — Read Holding Registers</option>
+                <option value="4">0x04 — Read Input Registers</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Register address (decimal)</label>
+              <input type="number" name="modbus_reg" min="0" max="65535">
+            </div>
+            <div class="field">
+              <label>Scale factor</label>
+              <input type="number" name="modbus_scale" step="0.001" min="0">
+              <span class="hint">raw × scale = mm</span>
+            </div>
+            <div class="field">
+              <label>Polling interval (ms)</label>
+              <input type="number" name="poll_ms" min="100" max="60000">
+            </div>
+          </div>
+          <div class="field" style="margin-top:6px">
+            <label style="display:flex;align-items:center;gap:10px;text-transform:none;letter-spacing:0;font-size:0.92rem;font-weight:500">
+              <input type="checkbox" name="can_enabled" style="width:auto;flex-shrink:0">
+              Enable CAN bus (NMEA 2000 / VE.Can)
+            </label>
+            <span class="hint">Publishes PGN 127505 to the Cerbo GX. Restart required when changed.</span>
+          </div>
+          <div class="field" style="margin-top:6px">
+            <label style="display:flex;align-items:center;gap:10px;text-transform:none;letter-spacing:0;font-size:0.92rem;font-weight:500">
+              <input type="checkbox" name="ble_enabled" style="width:auto;flex-shrink:0">
+              Enable BLE beacon (Mopeka Pro H2O emulation)
+            </label>
+            <span class="hint">Broadcasts level as a Mopeka Pro H2O sensor. Cerbo GX discovers it automatically — set empty=0 mm, full=sensor range mm on the Cerbo. Restart required when changed.</span>
+          </div>
+          <div class="actions" style="margin-top:18px">
+            <button type="submit">Save configuration</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Probe sensor -->
+      <section class="panel span-2">
+        <div class="panel-head">
+          <h2>Probe Sensor</h2>
+          <span class="meta">Sweep · 5–15 s</span>
+        </div>
+        <p class="note">Use this if you don't know the sensor's Modbus settings. Sweeps common bauds and addresses. Hits populate the Configure form above.</p>
+        <div class="actions" style="margin-top:14px">
+          <button id="probeBtn">Start probe</button>
+          <button id="probeStop" class="sec" style="display:none">Stop</button>
+          <span id="probeMsg" class="note"></span>
+        </div>
+        <table class="hits">
+          <thead>
+            <tr><th>Baud</th><th>Par</th><th>Slave</th><th>Fn</th><th>Reg</th><th>Value</th><th></th></tr>
+          </thead>
+          <tbody id="hits"></tbody>
+        </table>
+      </section>
+
+    </div><!-- /cfgContent -->
+  </div><!-- /pane-configure -->
+
+  <!-- ── System tab ── -->
+  <div class="tab-pane" id="pane-system" hidden>
+
+    <div class="gate" id="sysGate">
+      <div class="gate-card">
+        <svg width="36" height="36" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-3)" aria-hidden="true">
+          <rect x="6" y="14" width="20" height="14" rx="2.5"/>
+          <path d="M10 14v-4a6 6 0 0 1 12 0v4"/>
+        </svg>
+        <h3>Sign in to manage</h3>
+        <p class="note">Enter the admin password shown in the serial console.</p>
+        <form class="sign-in-form">
+          <div class="field">
+            <label>Admin password</label>
+            <input type="password" class="sign-in-pwd" placeholder="Password" autocomplete="current-password">
+          </div>
+          <button type="submit">Sign in</button>
+          <p class="gate-err"></p>
+        </form>
+      </div>
+    </div>
+
+    <div class="guarded" id="sysContent" hidden>
+
+      <!-- Network -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Network</h2>
+          <span class="meta">802.11 · mDNS</span>
+        </div>
+        <table class="kv"><tbody>
+          <tr><th>SoftAP</th><td id="ap">--</td></tr>
+          <tr><th>Station</th><td id="sta">--</td></tr>
+        </tbody></table>
+        <form id="wifiForm" style="margin-top:20px">
+          <div class="field">
+            <label>Join WiFi (SSID)</label>
+            <input name="ssid" placeholder="home network">
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input name="pass" type="password" autocomplete="new-password">
+          </div>
+          <div class="actions">
+            <button type="submit">Save WiFi</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Admin password -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Authentication</h2>
+          <span class="meta">Session · admin</span>
+        </div>
+        <form id="pwdForm">
+          <div class="field">
+            <label>Current password</label>
+            <input type="password" name="old" autocomplete="current-password">
+          </div>
+          <div class="field">
+            <label>New password (min 4 chars)</label>
+            <input type="password" name="new" autocomplete="new-password">
+          </div>
+          <div class="actions">
+            <button type="submit">Change password</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Firmware update -->
+      <section class="panel span-2">
+        <div class="panel-head">
+          <h2>Firmware Update</h2>
+          <span class="meta">OTA · admin</span>
+        </div>
+        <p class="note">Upload a compiled <code>firmware.bin</code> (from <code>.pio/build/esp32dev/</code> after <code>pio run</code>). The device writes it to the inactive OTA slot, verifies, and reboots into the new image — saved config and WiFi creds are preserved.</p>
+        <form id="otaForm" style="margin-top:10px">
+          <div class="field">
+            <label>Firmware file</label>
+            <input type="file" id="otaFile" accept=".bin,application/octet-stream" required>
+          </div>
+          <div class="actions">
+            <button type="submit">Upload &amp; reboot</button>
+            <span id="otaMsg" class="note"></span>
+          </div>
+          <div class="bar" id="otaBarOuter" style="display:none;margin-top:14px"><div id="otaBar" style="width:0%"></div></div>
+        </form>
+      </section>
+
+      <!-- Restart -->
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Restart</h2>
+          <span class="meta">Soft reboot</span>
+        </div>
+        <p class="note">Restarts the firmware. WiFi reconnects automatically; takes ~5 s.</p>
+        <div class="actions">
+          <button id="restartBtn">Restart device</button>
+          <span id="restartMsg" class="note"></span>
+        </div>
+      </section>
+
+    </div><!-- /sysContent -->
+  </div><!-- /pane-system -->
+
+  <!-- ── Help tab ── -->
+  <div class="tab-pane" id="pane-help" hidden>
+    <section class="panel span-2 help">
+      <div class="panel-head">
+        <h2>Documentation</h2>
+        <span class="meta">Logbook</span>
+      </div>
+
+      <details open><summary><b>Wiring</b></summary>
+<pre>
+  RS485 sensor side
+  ─────────────────
+   sensor V+ ──── external 12–24 V PSU (+)
+   sensor GND ─┬─ external PSU (−)
+               └─ T-CAN485 GND  ← common ground is mandatory
+   sensor A  ──── T-CAN485 RS485 "A"
+   sensor B  ──── T-CAN485 RS485 "B"
+   ↑ swap A/B if no response — labelling on cheap sensors is unreliable
+   For runs &gt; ~3 m, add a 120 Ω termination resistor across A–B at the
+   far end (and a second one at the T-CAN485 end for very long buses).
+
+  CAN side (to Cerbo GX VE.Can port)
+  ──────────────────────────────────
+   T-CAN485 CAN-H ── CAN-H ── … ── Cerbo VE.Can RJ45 pin 7
+   T-CAN485 CAN-L ── CAN-L ── … ── Cerbo VE.Can RJ45 pin 8
+   T-CAN485 GND   ── shield/drain (optional)
+   Bus must be terminated 120 Ω at BOTH ends. Use Victron's
+   RJ45 VE.Can terminator on the Cerbo end; add a 120 Ω resistor
+   across CAN-H/CAN-L at the T-CAN485 end (or buy a second terminator).
+   Bitrate is fixed at 250 kbit/s — set the Cerbo VE.Can port to
+   "VE.Can &amp; NMEA 2000 (250 kbit/s)" in Remote Console.
+</pre>
+      </details>
+
+      <details><summary><b>Configuration field reference</b></summary>
+        <h3>Slave address</h3>
+        <p>Modbus device ID (1–247). Cheap sensors usually ship as 1.</p>
+        <h3>Baud / parity</h3>
+        <p>Common values are <code>9600 8N1</code> (default of most level transmitters).</p>
+        <h3>Function code</h3>
+        <p><code>0x03</code> Read Holding Registers — most level sensors.
+        <code>0x04</code> Read Input Registers — some sensors expose readings here instead.</p>
+        <h3>Register address</h3>
+        <p>Where the level reading lives in the device's Modbus map. Try <code>0x0000</code>
+        first, then <code>0x0004</code>.</p>
+        <h3>Scale factor</h3>
+        <p>Multiplier from the raw register value to millimetres.</p>
+        <ul>
+          <li>Raw is already mm → <code>1.0</code></li>
+          <li>Raw is cm → <code>10.0</code></li>
+          <li>Raw is metres × 100 → <code>10.0</code></li>
+          <li>Raw is 0–10000 ‰ of full scale → <code>sensor_range_mm / 10000</code></li>
+        </ul>
+        <h3>Sensor range (mm)</h3>
+        <p>Full-scale measurement depth. Used to convert mm → percent for PGN 127505.</p>
+        <h3>Tank capacity (L)</h3>
+        <p>Physical tank volume. Sent as the absolute capacity field of PGN 127505 so the
+        Cerbo GX can show litres alongside %.</p>
+        <h3>Polling interval (ms)</h3>
+        <p>How often to read the sensor. PGN 127505 transmits every 2.5 s regardless;
+        polling faster than that just makes the local readout snappier.</p>
+      </details>
+
+      <details><summary><b>NMEA 2000 / VE.Can</b></summary>
+        <p>The bridge announces itself on the bus with an ISO Address Claim
+        (PGN 60928) and then transmits Fluid Level (PGN 127505) every 2.5 s
+        with Tank Type = Fresh Water and Instance = 0. The Cerbo GX assigns a
+        Tank instance automatically and shows the value on its Tanks page. If
+        multiple bridges share a bus, give each a different tank instance in code.</p>
+        <p>Until the address claim completes, the device source address is
+        <code>254</code> and frames are <i>not</i> transmitted (they would be
+        silently dropped by the stack). The <b>N2K Source / Tx</b> readout shows
+        when the claim has settled.</p>
+      </details>
+
+      <details><summary><b>Probe walkthrough</b></summary>
+        <ol>
+          <li>Wire the sensor and power it. The bridge must be powered too.</li>
+          <li>Sign in, go to the Configure tab, and hit <b>Start probe</b>. Phase 1 (~3 s) finds plausible bauds; phase 2
+          sweeps slave addresses and registers on the surviving lanes.</li>
+          <li>Watch the hits table. A row with a sane-looking value
+          (e.g. depth in mm matching the tank) is your sensor.</li>
+          <li>Click <b>Use</b> to apply that hit's settings to the Configure form,
+          then click Save.</li>
+        </ol>
+      </details>
+
+      <details><summary><b>Troubleshooting</b></summary>
+        <ul>
+          <li><b>Modbus errors keep increasing</b> — check A/B polarity (try
+          swapping), verify common ground between the sensor PSU and the
+          T-CAN485 GND, confirm the baud and slave address.</li>
+          <li><b>Cerbo GX doesn't show the tank</b> — verify the VE.Can port
+          mode (Settings → Services → VE.Can port → 250 kbit/s + NMEA 2000),
+          both ends of the bus terminated, and that the N2K source on this
+          page is not 254.</li>
+          <li><b>Web UI freezes during probe</b> — refresh; the probe runs in
+          a background task and shouldn't block. If it does, file a bug.</li>
+          <li><b>WiFi STA won't connect</b> — re-save SSID and password,
+          check the LED is purple (AP-only) before retrying.</li>
+        </ul>
+      </details>
+
+      <details><summary><b>Lost password recovery</b></summary>
+        <p>The admin password regenerates on every boot until you change it via
+        the web UI. To recover: reboot the device with a serial monitor attached
+        (115200 baud) — the new password prints on startup. All other settings
+        are preserved.</p>
+      </details>
+    </section>
+  </div><!-- /pane-help -->
+
+  <p class="foot">T·CAN485<span class="sep">·</span>Tank Bridge<span class="sep">·</span>Modbus RTU → NMEA 2000</p>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = sel => document.querySelector(sel);
+function toast(msg, ms=2500) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+function fmtAge(ms) {
+  if (ms == null) return '--';
+  const s = Math.floor(ms/1000);
+  if (s < 60)    return s + ' s';
+  if (s < 3600)  return Math.floor(s/60) + ' m ' + (s%60) + ' s';
+  if (s < 86400) return Math.floor(s/3600) + ' h ' + Math.floor((s%3600)/60) + ' m';
+  const d = Math.floor(s/86400);
+  const h = Math.floor((s%86400)/3600);
+  const m = Math.floor((s%3600)/60);
+  return d + ' d ' + h + ' h ' + m + ' m';
+}
+function fmtN(n) {
+  return (n == null) ? '--' : Number(n).toLocaleString('en-US');
+}
+
+// ---- Auth state ----
+
+let authed = false;
+
+function renderAuthState() {
+  document.querySelectorAll('.gate').forEach(el => { el.hidden = authed; });
+  document.querySelectorAll('.guarded').forEach(el => { el.hidden = !authed; });
+  document.querySelectorAll('.tab .badge').forEach(b => { b.hidden = authed; });
+  $('#signOutBtn').hidden = !authed;
+}
+
+function handleUnauthed() {
+  authed = false;
+  renderAuthState();
+  toast('Session expired — sign in again');
+}
+
+// ---- Tab navigation ----
+
+function selectTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-pane').forEach(p => { p.hidden = p.id !== 'pane-' + name; });
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => selectTab(tab.dataset.tab));
+});
+
+// ---- Sign-in forms (one in each admin tab pane) ----
+
+document.querySelectorAll('.sign-in-form').forEach(form => {
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const pwd = form.querySelector('.sign-in-pwd').value;
+    const errEl = form.querySelector('.gate-err');
+    errEl.textContent = '';
+    try {
+      const r = await fetch('/api/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({password: pwd})
+      });
+      if (r.status === 401) {
+        errEl.textContent = 'Wrong password.';
+        form.querySelector('.sign-in-pwd').focus();
+        form.querySelector('.sign-in-pwd').select();
+        return;
+      }
+      authed = true;
+      renderAuthState();
+      form.reset();
+    } catch {
+      errEl.textContent = 'Network error.';
+    }
+  });
+});
+
+// ---- Sign-out ----
+
+$('#signOutBtn').addEventListener('click', async () => {
+  try { await fetch('/api/logout', {method: 'POST'}); } catch {}
+  authed = false;
+  renderAuthState();
+  selectTab('status');
+  toast('Signed out');
+});
+
+// ---- Dashboard data ----
+
+let statusFailCount = 0;
+async function refreshStatus() {
+  try {
+    const r = await fetch('/api/status'); const j = await r.json();
+    statusFailCount = 0;
+    $('#pct').firstChild.data = (j.level_pct == null ? '--' : j.level_pct.toFixed(1) + '%');
+    $('#mm').textContent = (j.level_mm == null ? '-- mm' : fmtN(Math.round(j.level_mm)) + ' mm of ' + fmtN(j.sensor_range_mm) + ' mm');
+    $('#bar').style.width = Math.max(0, Math.min(100, j.level_pct||0)) + '%';
+    $('#cap').textContent = fmtN(j.capacity_L) + ' L';
+    $('#age').textContent = j.modbus_ok > 0 ? fmtAge(j.uptime_ms - j.last_read_ms) + ' ago' : 'never';
+    $('#mb').textContent = fmtN(j.modbus_ok) + ' / ' + fmtN(j.modbus_err);
+    $('#n2k').textContent = (j.n2k_address == 254 ? 'unclaimed' : j.n2k_address) + ' / ' + fmtN(j.n2k_tx_count);
+    $('#up').textContent = fmtAge(j.uptime_ms);
+    $('#ap').textContent = j.ap_ssid + ' @ ' + j.ap_ip;
+    const reasonHint = { auth_fail: 'wrong password', auth_timeout: 'auth timeout', no_ap: 'AP not found', ap_busy: 'AP busy' };
+    $('#sta').textContent = j.sta_state == 'connected' ? (j.sta_ssid + ' @ ' + j.sta_ip)
+                       : j.sta_state == 'connecting' ? ('connecting to ' + j.sta_ssid + (reasonHint[j.sta_reason] ? ' — ' + reasonHint[j.sta_reason] : '…'))
+                       : 'not configured';
+    const dot = $('#hdrDot'), txt = $('#hdrTxt');
+    if (j.modbus_err > 0 && j.modbus_ok == 0) { dot.className='dot err'; txt.textContent='sensor error'; }
+    else if (!j.can_enabled && !j.ble_enabled && j.modbus_ok > 0) { dot.className='dot warn'; txt.textContent='sensor only — CAN & BLE off'; }
+    else if (!j.can_enabled && !j.ble_enabled)                    { dot.className='dot'; txt.textContent='waiting for sensor'; }
+    else if (!j.can_enabled && j.ble_enabled && j.modbus_ok > 0)  { dot.className='dot ok'; txt.textContent='publishing via BLE'; }
+    else if (!j.can_enabled && j.ble_enabled)                     { dot.className='dot warn'; txt.textContent='BLE on — waiting for sensor'; }
+    else if (j.n2k_address == 254) { dot.className='dot warn'; txt.textContent='waiting for N2k claim'; }
+    else if (j.n2k_distressed) { dot.className='dot warn'; txt.textContent='CAN bus disconnected'; }
+    else if (j.modbus_ok > 0) { dot.className='dot ok'; txt.textContent = j.ble_enabled ? 'publishing via CAN + BLE' : 'publishing to Cerbo'; }
+    else { dot.className='dot'; txt.textContent='waiting for sensor'; }
+    $('#n2kRow').hidden = !j.can_enabled;
+    $('#bleRow').hidden = !j.ble_enabled;
+    if (j.ble_enabled) {
+      const mac   = j.ble_mac || '--';
+      const state = j.ble_tx_count > 0 ? `advertising · ${fmtN(j.ble_tx_count)} tx` : 'waiting for sensor';
+      $('#bleTx').textContent = `${mac} · ${state}`;
+    }
+  } catch (e) {
+    if (++statusFailCount >= 3) {
+      $('#hdrDot').className = 'dot err';
+      $('#hdrTxt').textContent = 'device unreachable';
+    }
+  }
+}
+async function refreshConfig() {
+  const r = await fetch('/api/config'); const j = await r.json();
+  for (const [k, v] of Object.entries(j)) {
+    const el = document.querySelector(`#cfgForm [name="${k}"]`);
+    if (el && el.type !== 'checkbox') el.value = v;
+  }
+  const canCb = document.querySelector('#cfgForm [name="can_enabled"]');
+  if (canCb && j.can_enabled !== undefined) canCb.checked = !!j.can_enabled;
+  const bleCb = document.querySelector('#cfgForm [name="ble_enabled"]');
+  if (bleCb && j.ble_enabled !== undefined) bleCb.checked = !!j.ble_enabled;
+}
+async function postJson(url, body) {
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  if (r.status == 401) { handleUnauthed(); throw new Error('auth'); }
+  if (!r.ok) { const t = await r.text(); toast('Error: ' + t); throw new Error(t); }
+  return r.json().catch(() => ({}));
+}
+$('#cfgForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target); const body = {};
+  for (const [k, v] of fd.entries()) body[k] = isNaN(+v) ? v : +v;
+  const canCb = e.target.querySelector('[name="can_enabled"]');
+  if (canCb) body.can_enabled = canCb.checked;
+  const bleCb2 = e.target.querySelector('[name="ble_enabled"]');
+  if (bleCb2) body.ble_enabled = bleCb2.checked;
+  try { await postJson('/api/config', body); toast('Saved'); refreshConfig(); refreshStatus(); } catch {}
+});
+$('#wifiForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  try { await postJson('/api/wifi', {ssid:fd.get('ssid'), pass:fd.get('pass')}); toast('Saved — joining…'); }
+  catch {}
+});
+$('#pwdForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  try { await postJson('/api/admin/password', {old:fd.get('old'), new:fd.get('new')});
+        toast('Password changed'); e.target.reset(); }
+  catch {}
+});
+
+$('#otaForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const f = $('#otaFile').files[0];
+  if (!f) { toast('Pick a .bin file first'); return; }
+  const fd = new FormData();
+  fd.append('firmware', f);
+  $('#otaBarOuter').style.display = 'block';
+  $('#otaBar').style.width = '0%';
+  $('#otaMsg').textContent = `Uploading ${f.name} (${(f.size/1024).toFixed(0)} KB)…`;
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/ota');
+  xhr.upload.onprogress = ev => {
+    if (!ev.lengthComputable) return;
+    const pct = (ev.loaded / ev.total) * 100;
+    $('#otaBar').style.width = pct.toFixed(1) + '%';
+    $('#otaMsg').textContent = `Uploading — ${pct.toFixed(0)}%`;
+  };
+  xhr.onload = () => {
+    if (xhr.status === 401) { handleUnauthed(); $('#otaMsg').textContent = ''; $('#otaBarOuter').style.display='none'; return; }
+    if (xhr.status >= 200 && xhr.status < 300) {
+      $('#otaBar').style.width = '100%';
+      $('#otaMsg').textContent = 'Uploaded — device rebooting; reload in ~10 s.';
+      setTimeout(() => location.reload(), 12000);
+    } else {
+      $('#otaMsg').textContent = 'Failed: ' + (xhr.responseText || xhr.statusText);
+      $('#otaBarOuter').style.display = 'none';
+    }
+  };
+  xhr.onerror = () => {
+    $('#otaMsg').textContent = 'Network error during upload.';
+    $('#otaBarOuter').style.display = 'none';
+  };
+  xhr.send(fd);
+});
+
+$('#restartBtn').addEventListener('click', async () => {
+  if (!confirm('Restart the device?')) return;
+  $('#restartBtn').disabled = true;
+  $('#restartMsg').textContent = 'Restarting…';
+  try {
+    await postJson('/api/restart', {});
+    $('#restartMsg').textContent = 'Rebooting — reconnecting in ~8 s.';
+    setTimeout(() => location.reload(), 8000);
+  } catch {
+    $('#restartBtn').disabled = false;
+    $('#restartMsg').textContent = 'Failed.';
+  }
+});
+
+let probeTimer = null;
+async function pollProbe() {
+  let j;
+  try {
+    const r = await fetch('/api/probe/status'); j = await r.json();
+  } catch {
+    $('#probeMsg').textContent = 'Device unreachable — reconnect and refresh';
+    clearInterval(probeTimer); probeTimer = null;
+    $('#probeBtn').disabled = false; $('#probeStop').style.display = 'none';
+    return;
+  }
+  $('#probeMsg').textContent = j.running
+    ? `Phase ${j.phase} — ${j.step}/${j.total} — ${j.current}`
+    : (j.current || 'idle');
+  const tb = $('#hits'); tb.innerHTML = '';
+  for (const h of (j.hits || [])) {
+    const tr = document.createElement('tr');
+    const par = ['8N1','8E1','8O1'][h.parity] || h.parity;
+    tr.innerHTML = `<td>${h.baud}</td><td>${par}</td><td>${h.slave}</td>`
+                 + `<td>0x${h.fn.toString(16).padStart(2,'0')}</td>`
+                 + `<td>0x${h.reg.toString(16).padStart(4,'0')}</td>`
+                 + `<td>${h.value}</td><td><button type="button" class="sec">Use</button></td>`;
+    tr.querySelector('button').onclick = () => {
+      const f = $('#cfgForm');
+      f.modbus_baud.value = h.baud;
+      f.modbus_parity.value = h.parity;
+      f.modbus_slave.value = h.slave;
+      f.modbus_fn.value = h.fn;
+      f.modbus_reg.value = h.reg;
+      toast('Applied — click Save to persist');
+    };
+    tb.appendChild(tr);
+  }
+  if (!j.running) {
+    clearInterval(probeTimer); probeTimer = null;
+    $('#probeBtn').disabled = false; $('#probeStop').style.display = 'none';
+  }
+}
+$('#probeBtn').addEventListener('click', async () => {
+  $('#probeBtn').disabled = true; $('#probeStop').style.display = 'inline-block';
+  try { await postJson('/api/probe', {}); }
+  catch { $('#probeBtn').disabled = false; $('#probeStop').style.display='none'; return; }
+  probeTimer = setInterval(pollProbe, 1000); pollProbe();
+});
+$('#probeStop').addEventListener('click', async () => {
+  try { await postJson('/api/probe/stop', {}); } catch {}
+});
+
+// ---- Setup view (WiFi provisioning) ----
+
+function rssiBars(rssi) {
+  const n = rssi >= -55 ? 4 : rssi >= -65 ? 3 : rssi >= -75 ? 2 : rssi >= -85 ? 1 : 0;
+  return '▮'.repeat(n) + '▯'.repeat(4 - n);
+}
+function renderNetList(results) {
+  const root = $('#netList');
+  if (!results || results.length === 0) {
+    root.innerHTML = '<p class="note">No networks visible. Hit Rescan in a few seconds.</p>';
+    return;
+  }
+  const seen = new Map();
+  for (const r of results) {
+    const prev = seen.get(r.ssid);
+    if (!prev || r.rssi > prev.rssi) seen.set(r.ssid, r);
+  }
+  const sorted = [...seen.values()].sort((a, b) => b.rssi - a.rssi);
+  root.innerHTML = '';
+  for (const e of sorted) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'sec';
+    row.innerHTML = `<span class="ssid">${e.secured ? '🔒 ' : ''}${e.ssid}</span>`
+                  + `<span class="note">${e.rssi} dBm <code>${rssiBars(e.rssi)}</code></span>`;
+    row.onclick = () => {
+      $('#pickedSsid').textContent = e.ssid;
+      $('#pickedPass').value = '';
+      $('#connectForm').style.display = 'block';
+      $('#pickedPass').focus();
+    };
+    root.appendChild(row);
+  }
+}
+async function pollScan() {
+  try {
+    const r = await fetch('/api/wifi/scan'); const j = await r.json();
+    $('#scanMsg').textContent = j.in_progress ? 'Scanning…' : `${j.results.length} network(s)`;
+    if (j.results.length > 0) renderNetList(j.results);
+    return j.in_progress;
+  } catch { $('#scanMsg').textContent = 'Scan error'; return false; }
+}
+let setupScanTimer = null;
+function bootSetupView(status) {
+  document.title = 'Tank Bridge — Setup';
+  $('#setupView').hidden = false;
+  $('#setupAp').textContent = `This device's AP: ${status.ap_ssid}  ·  ${status.ap_ip}`;
+  pollScan();
+  setupScanTimer = setInterval(async () => { await pollScan(); }, 3000);
+
+  $('#rescanBtn').onclick = () => { fetch('/api/wifi/scan'); pollScan(); };
+  $('#cancelPick').onclick = () => { $('#connectForm').style.display = 'none'; };
+  $('#connectForm').onsubmit = async e => {
+    e.preventDefault();
+    const ssid = $('#pickedSsid').textContent;
+    const pass = $('#pickedPass').value;
+    $('#joinMsg').textContent = `Saving and joining ${ssid}…`;
+    try {
+      const r = await fetch('/api/wifi', {method:'POST', headers:{'Content-Type':'application/json'},
+                                          body: JSON.stringify({ssid, pass})});
+      if (!r.ok) { $('#joinMsg').textContent = 'Save failed: ' + (await r.text()); return; }
+    } catch (err) { $('#joinMsg').textContent = 'Network error'; return; }
+    clearInterval(setupScanTimer);
+    const REASON_MSG = {
+      auth_fail:    'Wrong WiFi password.',
+      auth_timeout: 'WiFi handshake timed out — likely wrong password or weak signal.',
+      no_ap:        `Couldn't see "${ssid}" — out of range, hidden, or wrong network.`,
+      ap_busy:      'Access point refused the connection (busy or filtering).',
+    };
+    let tries = 0;
+    const waitTimer = setInterval(async () => {
+      tries++;
+      try {
+        const s = await (await fetch('/api/status')).json();
+        $('#joinMsg').textContent = `Joining ${ssid} (${s.sta_state})…`;
+        if (s.sta_state === 'connected' && s.sta_ip) {
+          clearInterval(waitTimer);
+          $('#joinMsg').innerHTML =
+            `Connected to <b>${ssid}</b>.<br>`
+          + `From your home network the bridge will be reachable as `
+          + `<a href="http://watertank.local/">http://watertank.local/</a> `
+          + `or <a href="http://${s.sta_ip}/">http://${s.sta_ip}/</a>.<br>`
+          + `The setup access point will shut down shortly — switch your phone `
+          + `to your home WiFi to continue.`;
+          setTimeout(() => { location.href = `http://${s.sta_ip}/`; }, 4000);
+        } else if (REASON_MSG[s.sta_reason]) {
+          clearInterval(waitTimer);
+          $('#joinMsg').textContent = REASON_MSG[s.sta_reason];
+          $('#connectForm').style.display = 'block';
+          $('#pickedPass').focus(); $('#pickedPass').select();
+          setupScanTimer = setInterval(async () => { await pollScan(); }, 3000);
+        } else if (tries > 30) {
+          clearInterval(waitTimer);
+          $('#joinMsg').textContent = 'Could not connect. Check the password and try again.';
+          $('#connectForm').style.display = 'none';
+          setupScanTimer = setInterval(async () => { await pollScan(); }, 3000);
+        }
+      } catch {}
+    }, 1000);
+  };
+}
+
+// ---- Boot ----
+
+async function boot() {
+  let status;
+  try {
+    status = await (await fetch('/api/status')).json();
+  } catch {
+    document.body.innerHTML = '<p style="padding:20px">Cannot reach the device. Refresh to retry.</p>';
+    return;
+  }
+  if (!status.wifi_configured) {
+    bootSetupView(status);
+  } else {
+    $('#setupView').hidden = true;
+    $('#dashboardView').hidden = false;
+    // Check if an existing session cookie is still valid (e.g. page reload while signed in).
+    try {
+      const a = await (await fetch('/api/auth')).json();
+      authed = a.authed;
+    } catch {}
+    renderAuthState();
+    refreshConfig();
+    refreshStatus();
+    setInterval(refreshStatus, 1000);
+  }
+}
+boot();
+</script>
+</body></html>
