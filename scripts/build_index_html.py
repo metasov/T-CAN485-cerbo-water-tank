@@ -136,10 +136,16 @@ def minify_html_outer(src: str) -> str:
 
 
 def minify(src: str) -> str:
-    """Split on <style>...</style> and <script>...</script>, minify each block
-    with the right strategy, reassemble."""
-    parts = re.split(r"(<style[^>]*>.*?</style>|<script[^>]*>.*?</script>)",
-                     src, flags=re.DOTALL)
+    """Split on <style>, <script>, <pre>, and <textarea> blocks; minify each
+    with the right strategy, reassemble. <pre>/<textarea> bodies are passed
+    through verbatim so whitespace-significant content (ASCII art, code
+    samples) survives."""
+    parts = re.split(
+        r"(<style[^>]*>.*?</style>"
+        r"|<script[^>]*>.*?</script>"
+        r"|<pre[^>]*>.*?</pre>"
+        r"|<textarea[^>]*>.*?</textarea>)",
+        src, flags=re.DOTALL)
     out = []
     for part in parts:
         if part.startswith("<style"):
@@ -155,6 +161,8 @@ def minify(src: str) -> str:
             # Trim trailing whitespace on each line.
             js = re.sub(r"[ \t]+\n", "\n", js)
             out.append(m.group(1) + js + m.group(3))
+        elif part.startswith("<pre") or part.startswith("<textarea"):
+            out.append(part)
         else:
             out.append(minify_html_outer(part))
     return "".join(out)
